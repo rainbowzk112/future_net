@@ -2,25 +2,45 @@ package com.filetool.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
 
 public class Graph {
 	private Map<Integer, EdgeSet> graph;
+	private Set<Integer> vertexPassBy;
 	public static final boolean VISITED = true;
 	public static final boolean UNVISITED = false;
 
 	public Graph() {
 		super();
 		graph = new HashMap<Integer, EdgeSet>();
+		vertexPassBy = new HashSet<Integer>();
 	}
 
-	public Graph(String graphContext) {
-		init(graphContext);
+	public Graph(String graphContext, String condition) {
+		this();
+		init(graphContext, condition);
+	}
+
+	/**
+	 * @return the vertexPassBy
+	 */
+	public Set<Integer> getVertexPassBy() {
+		return vertexPassBy;
+	}
+
+	/**
+	 * @param vertexPassBy
+	 *            the vertexPassBy to set
+	 */
+	public void setVertexPassBy(Set<Integer> vertexPassBy) {
+		this.vertexPassBy = vertexPassBy;
 	}
 
 	public int getDistance(int vertex1, int vertex2) {
@@ -37,13 +57,11 @@ public class Graph {
 	}
 
 	public EdgeSet put(int vertex1, int vertex2, int weight) {
-		EdgeSet edgeSet = graph.get(vertex1);
-		if (edgeSet == null) {
-			edgeSet = new EdgeSet();
-			put(vertex1, edgeSet);
-		}
+		EdgeSet edgeSet = null;
+		System.out.println(vertex1 == 0);
+		edgeSet = graph.get(vertex1);// 顶点肯定全部存在
 		edgeSet.put(vertex2, weight);
-		return graph.get(vertex1);
+		return edgeSet;
 	}
 
 	/**
@@ -52,18 +70,26 @@ public class Graph {
 	 * @param condition
 	 * @return
 	 */
-	// TODO
 	public List<Integer> getMinDistancePath(String condition) {
 		String[] conditions = condition.split(",");
 		String vertex1 = conditions[0];
 		String vertex2 = conditions[1];
-		String vertexsPassBy = conditions[2];
-		List<Integer> path = null;
-		List<Integer> path1=getMinDistance(vertex1, vertex2);
-		
-		List<Integer> path2=null;
-		List<Integer> path3=null;
-		return path;
+		System.out.println(" vertex1= " + vertex1 + "  vertex2=" + vertex2);
+
+		List<Integer> path2 = getTopoPath();// 必经路径
+		if (isConnected(path2)) {
+			String firstIndexPassBy = String.valueOf(path2.get(0));// 必经路径第一个结点
+			List<Integer> path1 = getMinDistance(vertex1, firstIndexPassBy);// 左端路径
+			String lastIndexPassBy = String
+					.valueOf(path2.get(path2.size() - 1));// 必经路径最后一个结点
+			List<Integer> path3 = getMinDistance(lastIndexPassBy, vertex2);// 右端路径
+
+			path1.addAll(path2);
+			path1.addAll(path3);
+			return path1;
+		} else {
+			return null;
+		}
 	}
 
 	public String getResult(String condition) {
@@ -83,7 +109,7 @@ public class Graph {
 	}
 
 	public List<Integer> getMinDistance(String vertex1, String vertex2) {
-		return getMinDistance(Integer.valueOf(vertex1),
+		return getMinDistance(this, Integer.valueOf(vertex1),
 				Integer.valueOf(vertex2));
 	}
 
@@ -94,68 +120,47 @@ public class Graph {
 	 * @param vertex2
 	 * @return
 	 */
-	public List<Integer> getMinDistance(int vertex1, int vertex2) {
-		// 建立并初始化标记集合
-		Map<Integer, Boolean> mark = new HashMap<Integer, Boolean>();
-		Iterator<Entry<Integer, EdgeSet>> vertexSetIterator = graph.entrySet()
-				.iterator();
-		while (vertexSetIterator.hasNext()) {
-			Entry<Integer, EdgeSet> entry = vertexSetIterator.next();
-			mark.put(entry.getKey(), UNVISITED);
-		}
+	public List<Integer> getMinDistance(Graph graph, int vertex1, int vertex2) {
 
-		// 建立一个map存放起点到各顶点的距离
-		Map<Integer, Integer> distance = new HashMap<Integer, Integer>();
-		vertexSetIterator = graph.entrySet().iterator();
-		while (vertexSetIterator.hasNext()) {
-			Entry<Integer, EdgeSet> entry = vertexSetIterator.next();
-			distance.put(entry.getKey(), Integer.MAX_VALUE);
-		}
-
-		distance.put(vertex1, 0);// 起点距离标记为0
-		mark.put(vertex1, VISITED);// 标记起点
-		// 优先队列，用于求已更新的权重中的最小值
-		Queue<Node> pq = new PriorityQueue<Node>();
-		pq.offer(new Node(vertex1, 0));
-		List<Integer> path = new ArrayList<Integer>();
-		vertexSetIterator = graph.entrySet().iterator();
-		while (mark.get(vertex2) == UNVISITED) {
-			Node newNode = pq.poll();// 取距离最短的顶点
-			path.add(newNode.vertex);
-			int lastestMarkedVertex = newNode.vertex;
-			pq.clear();// 每次循环重新计算未标记的点的距离,避免以前的距离造成干扰
-			Iterator<Entry<Integer, Weight>> edgeSetIterator = graph
-					.get(newNode.vertex).entrySet().iterator();
-
-			while (edgeSetIterator.hasNext()) {
-				Entry<Integer, Weight> graphEntry = edgeSetIterator.next();
-				int vertex = graphEntry.getKey();// 访问新增顶点的所有相邻顶点
-				if (mark.get(vertex) == VISITED) {
-					continue;// 跳过已访问过的点
-				}
-				int newDistance = getDistance(vertex1, lastestMarkedVertex)
-						+ getDistance(lastestMarkedVertex, vertex);// 重新计算起点到该点的距离
-				// 距离小于原有距离的点放入队列中
-				if (newDistance < distance.get(vertex)) {
-					distance.put(vertex, newDistance);// 距离被更新
-					pq.offer(new Node(vertex, newDistance));// 更新了距离的点入队
-				}
-			}
-
-		}
-		return path;
+		return Algorithm.dijkstra(graph, vertex1, vertex2);
 	}
 
 	/**
 	 * 初始化图
 	 * 
 	 * @param graphContent
+	 * @param condition
 	 */
-	public void init(String graphContent) {
+	public void init(String graphContent, String condition) {
 		String[] lines = graphContent.split("\n");
+		System.out.println("condition= " + condition);
+		String[] conditions = condition.split(",");
+		System.out.println("conditions[2]=" + conditions[2]);
+		String[] keyVertex = conditions[2].split("\\|");//|为特殊字符，必须转义
+		System.out.println("keyVertex size= " + keyVertex.length);
+		Set<String> set = new HashSet<String>();
+		// 找出所有顶点
 		for (String line : lines) {
 			String[] items = line.split(",");
-			String linkID = items[0];
+			String sourceID = items[1];
+			set.add(sourceID);
+			String DestinationID = items[2];
+			set.add(DestinationID);
+
+		}
+		// 添加必经结点
+		for (String item : keyVertex) {
+			System.out.println("item = " + item);
+			vertexPassBy.add(Integer.valueOf(item));
+		}
+		// 初始化图
+		for (String item : set) {
+			graph.put(Integer.valueOf(item), new EdgeSet());// 值全部初始化为空集，以后若有邻边，则添加进去
+		}
+		// 建图
+		for (String line : lines) {
+			String[] items = line.split(",");
+			String linkID = items[0];// 暂时无用
 			String sourceID = items[1];
 			String DestinationID = items[2];
 			String cost = items[3];
@@ -163,31 +168,99 @@ public class Graph {
 		}
 	}
 
-	class Node implements Comparable<Node> {
-		Integer vertex;
-		Integer weight;
-
-		public Node() {
-
+	/**
+	 * 使用深度优先搜索作标记,判断是否可到达,得到可达的点集,用于剪枝
+	 * 
+	 * @return
+	 */
+	public Set<Integer> canReach(int startVertex) {
+		Map<Integer, Boolean> mark = new HashMap<Integer, Boolean>();
+		Algorithm.dfs(this, mark, startVertex);
+		Set<Integer> canReach = new HashSet<Integer>();
+		Iterator<Entry<Integer, Boolean>> iterator = mark.entrySet().iterator();
+		while (iterator.hasNext()) {
+			Entry<Integer, Boolean> entry = iterator.next();
+			int key = entry.getKey();
+			boolean value = entry.getValue();
+			if (value == true) {
+				canReach.add(key);
+			}
 		}
-
-		public Node(Integer vertex, Integer weight) {
-			super();
-			this.vertex = vertex;
-			this.weight = weight;
-		}
-
-		/**
-		 * @return the weight
-		 */
-		public Integer getWeight() {
-			return weight;
-		}
-
-		@Override
-		public int compareTo(Node o) {
-			return weight - o.weight;// 从低到高排序
-		}
-
+		return canReach;
 	}
+
+	/**
+	 * 判断必经结点间是否连通
+	 * 
+	 * @return
+	 */
+	public List<Integer> getTopoPath() {
+		Graph subGraph = subGraph(vertexPassBy);
+		return new ArrayList<Integer>(Algorithm.topoSort(subGraph));
+	}
+
+	public boolean isConnected(List<Integer> topoResult) {
+		return topoResult.size() == vertexPassBy.size();// 所有顶点都能按序访问，则是连通的
+	}
+
+	/**
+	 * 求子图，复制一份出来，原来的不删掉
+	 * 
+	 * @param vertexPassBy
+	 * @return
+	 */
+	public Graph subGraph(Set<Integer> vertexPassBy) {
+		Graph subGraph = new Graph();
+		for (Integer item : vertexPassBy) {
+			subGraph.put(item, new EdgeSet());
+		}
+		Iterator<Entry<Integer, EdgeSet>> subGraphIterator = subGraph
+				.entrySet().iterator();
+		while (subGraphIterator.hasNext()) {
+			Entry<Integer, EdgeSet> subGraphEntry = subGraphIterator.next();
+			int vertex1 = subGraphEntry.getKey();
+			EdgeSet smallEdgeSet = subGraphEntry.getValue();// 新创建的边集
+			EdgeSet largeEdgeSet = graph.get(vertex1);// 大图中的边集
+			Iterator<Entry<Integer, Weight>> edgeIterator = largeEdgeSet
+					.entrySet().iterator();
+			while (edgeIterator.hasNext()) {
+				Entry<Integer, Weight> edgeEntry = edgeIterator.next();
+				int vertex2 = edgeEntry.getKey();
+				Weight weight = edgeEntry.getValue();
+				if (vertexPassBy.contains(vertex2)) {
+					smallEdgeSet.put(vertex2, weight);// 两点间的多重边也加入
+					subGraph.put(vertex1, smallEdgeSet);
+				}
+			}
+		}
+		return subGraph;
+	}
+
+	public Set<Map.Entry<Integer, EdgeSet>> entrySet() {
+		return graph.entrySet();
+	}
+
+	public EdgeSet get(int vertex1) {
+		return graph.get(vertex1);
+	}
+
+	/**
+	 * 打印图
+	 */
+	public void print() {
+		Iterator<Entry<Integer, EdgeSet>> iterator = graph.entrySet()
+				.iterator();
+		while (iterator.hasNext()) {
+			Entry<Integer, EdgeSet> entry = iterator.next();
+			int vertex1 = entry.getKey();
+			System.out.println("vertex1= " + vertex1);
+			EdgeSet edgeSet = entry.getValue();
+			edgeSet.print();
+		}
+	}
+
+	public Set<Integer> keySet() {
+		return graph.keySet();
+	}
+
 }

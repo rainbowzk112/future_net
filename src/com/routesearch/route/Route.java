@@ -7,8 +7,6 @@
  */
 package com.routesearch.route;
 
-import java.util.List;
-
 import com.filetool.util.Graph;
 
 public final class Route {
@@ -20,8 +18,11 @@ public final class Route {
 	 * @version V1
 	 */
 	public static String searchRoute(String graphContent, String condition) {
-		Graph graph = new Graph(graphContent);
-		return graph.getResult(condition);
+		Graph graph = new Graph(graphContent,condition);
+		graph.print();
+		String result=graph.getResult(condition);
+		System.out.println("result: "+result);
+		return result;
 	}
 
 }
