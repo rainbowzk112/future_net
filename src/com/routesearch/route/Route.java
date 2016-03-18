@@ -7,18 +7,21 @@
  */
 package com.routesearch.route;
 
-public final class Route
-{
-    /**
-     * 你需要完成功能的入口
-     * 
-     * @author XXX
-     * @since 2016-3-4
-     * @version V1
-     */
-    public static String searchRoute(String graphContent, String condition)
-    {
-        return "hello world!";
-    }
+import java.util.List;
+
+import com.filetool.util.Graph;
+
+public final class Route {
+	/**
+	 * 你需要完成功能的入口
+	 * 
+	 * @author XXX
+	 * @since 2016-3-4
+	 * @version V1
+	 */
+	public static String searchRoute(String graphContent, String condition) {
+		Graph graph = new Graph(graphContent);
+		return graph.getResult(condition);
+	}
 
 }
